@@ -17,4 +17,5 @@ int request_file_list(int port);
 /* Analyse les commandes passées en ligne de commande */
 int parse_command(int argc, char *argv[], int port);
 
-#endif // CLIENT_H
+int authenticate(const char *username, const char *password, int port);
+#endif // CLIENT_Hs

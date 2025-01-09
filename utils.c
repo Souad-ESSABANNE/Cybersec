@@ -3,7 +3,8 @@
 #include "utils.h"
 #include <openssl/evp.h>
 #include <openssl/aes.h>
-
+unsigned char MY_AES_KEY[32] = "mysecurekey1234567890abcdef";
+unsigned char AES_IV[16] = "1234567890abcdef";
 
 void encrypt_data(const char *input, char *output, int *output_len) {
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); // Contexte pour le chiffrement
@@ -77,4 +78,35 @@ void decrypt_data(const char *input, int input_len, char *output) {
 
     output[plaintext_len] = '\0'; // Terminer la chaîne déchiffrée
     EVP_CIPHER_CTX_free(ctx);
+}
+void calculate_sha256(const unsigned char *data, size_t data_len, unsigned char *hash) {
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();  // Créer un contexte EVP pour le hachage
+    if (!ctx) {
+        perror("Erreur de création du contexte SHA-256");
+        return;
+    }
+
+    // Initialiser le contexte pour SHA-256
+    if (EVP_DigestInit_ex(ctx, EVP_sha256(), NULL) != 1) {
+        perror("Erreur lors de l'initialisation SHA-256");
+        EVP_MD_CTX_free(ctx);
+        return;
+    }
+
+    // Ajouter les données au hachage
+    if (EVP_DigestUpdate(ctx, data, data_len) != 1) {
+        perror("Erreur lors de la mise à jour SHA-256");
+        EVP_MD_CTX_free(ctx);
+        return;
+    }
+
+    // Finaliser le calcul du hachage
+    unsigned int hash_len;
+    if (EVP_DigestFinal_ex(ctx, hash, &hash_len) != 1) {
+        perror("Erreur lors de la finalisation SHA-256");
+        EVP_MD_CTX_free(ctx);
+        return;
+    }
+
+    EVP_MD_CTX_free(ctx);  // Libérer le contexte
 }

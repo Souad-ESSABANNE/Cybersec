@@ -14,9 +14,9 @@ int getmsg(char msg_read[1024]);
 int save_uploaded_file(const char *filename, const char *data);
 
 /* Envoie un fichier au client */
-int send_file_to_client(const char *filename);
+int send_file_to_client(int socket, const char *filename);
 
 /* Génère une liste des fichiers stockés */
 int list_files(char *response);
-
+int handle_authentication(const char *msg, int client_socket);
 #endif // SERVER_H
