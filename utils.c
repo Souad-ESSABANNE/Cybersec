@@ -3,6 +3,7 @@
 #include "utils.h"
 #include <openssl/evp.h>
 #include <openssl/aes.h>
+
 unsigned char MY_AES_KEY[32] = "mysecurekey1234567890abcdef";
 unsigned char AES_IV[16] = "1234567890abcdef";
 
@@ -43,18 +44,19 @@ void encrypt_data(const char *input, char *output, int *output_len) {
     EVP_CIPHER_CTX_free(ctx);
 }
 
-void decrypt_data(const char *input, int input_len, char *output) {
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); // Contexte pour le déchiffrement
+int decrypt_data(const char *input, int input_len, char *output) {
+    
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); // Créer un contexte de déchiffrement
     if (!ctx) {
         perror("Erreur de création du contexte EVP");
-        return;
+        return -1;
     }
 
     // Initialiser le contexte avec AES-256-CBC
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, MY_AES_KEY, AES_IV) != 1){
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, MY_AES_KEY, AES_IV) != 1) {
         perror("Erreur d'initialisation du déchiffrement");
         EVP_CIPHER_CTX_free(ctx);
-        return;
+        return -1;
     }
 
     int len = 0;
@@ -64,7 +66,7 @@ void decrypt_data(const char *input, int input_len, char *output) {
     if (EVP_DecryptUpdate(ctx, (unsigned char *)output, &len, (unsigned char *)input, input_len) != 1) {
         perror("Erreur lors du déchiffrement");
         EVP_CIPHER_CTX_free(ctx);
-        return;
+        return -1;
     }
     plaintext_len = len;
 
@@ -72,12 +74,20 @@ void decrypt_data(const char *input, int input_len, char *output) {
     if (EVP_DecryptFinal_ex(ctx, (unsigned char *)output + len, &len) != 1) {
         perror("Erreur lors de la finalisation du déchiffrement");
         EVP_CIPHER_CTX_free(ctx);
-        return;
+        return -1;
     }
     plaintext_len += len;
 
     output[plaintext_len] = '\0'; // Terminer la chaîne déchiffrée
     EVP_CIPHER_CTX_free(ctx);
+
+    printf("[DEBUG] Données déchiffrées (hex) : ");
+    for (int i = 0; i < plaintext_len; i++) {
+        printf("%02x", (unsigned char)output[i]);
+    }
+    printf("\n");
+
+    return plaintext_len;
 }
 void calculate_sha256(const unsigned char *data, size_t data_len, unsigned char *hash) {
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();  // Créer un contexte EVP pour le hachage
@@ -109,4 +119,22 @@ void calculate_sha256(const unsigned char *data, size_t data_len, unsigned char 
     }
 
     EVP_MD_CTX_free(ctx);  // Libérer le contexte
+}
+
+
+
+int validate_filename(const char *filename) {
+    if (strlen(filename) > 255) {
+        fprintf(stderr, "[ERREUR] Nom de fichier trop long.\n");
+        return 0;
+    }
+
+    for (size_t i = 0; i < strlen(filename); i++) {
+        if (!isalnum(filename[i]) && filename[i] != '.' && filename[i] != '_') {
+            fprintf(stderr, "[ERREUR] Nom de fichier invalide : %s\n", filename);
+            return 0;
+        }
+    }
+
+    return 1; // Nom de fichier valide
 }

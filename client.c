@@ -31,7 +31,7 @@ int sndmsg(char msg[1024], int port) {
         return -1;
     }
 
-    printf("[DEBUG] Connexion au serveur réussie. Envoi du message : '%s'\n", msg);
+    printf("[INFO] Connexion au serveur réussie. Message en cours d'envoi : '%s'\n", msg);
 
     // Envoyer le message
     if (send(sock, msg, strlen(msg), 0) < 0) {
@@ -46,10 +46,9 @@ int sndmsg(char msg[1024], int port) {
     char response[1024];
     int bytes_received = recv(sock, response, sizeof(response) - 1, 0);
     if (bytes_received > 0) {
-        response[bytes_received] = '\0';
-        printf("[DEBUG] Réponse reçue du serveur : %s\n", response);
+    	 printf("[INFO] Réponse reçue du serveur (%d octets) : %s\n", bytes_received, response);
     } else {
-        perror("[ERREUR] Pas de réponse du serveur après l'envoi.");
+	 fprintf(stderr, "[ERREUR] Pas de réponse ou réponse invalide du serveur.\n");
     }
 
     // Fermer le socket
@@ -57,11 +56,18 @@ int sndmsg(char msg[1024], int port) {
     return 0;
 }
 int download_file(const char *filename, int port) {
+    if (!validate_filename(filename)) {
+        fprintf(stderr, "[ERREUR] Nom de fichier invalide : %s\n", filename);
+        return -1;
+    }
     int sock;
     struct sockaddr_in server_addr;
     char request[1024];
     char buffer[1024];
     int bytes_received;
+    char decrypted_buffer[1024]; // Tampon pour les données déchiffrées
+    int encrypted_len;           // Taille des données chiffrées reçues
+    int decrypted_len;           // Taille des données déchiffrées
 
     // Créer le socket
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -75,7 +81,6 @@ int download_file(const char *filename, int port) {
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
     // Se connecter au serveur
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         perror("[ERREUR] Erreur lors de la connexion au serveur");
@@ -95,7 +100,7 @@ int download_file(const char *filename, int port) {
     }
     printf("[INFO] Commande DOWNLOAD envoyée pour le fichier : %s\n", filename);
 
-    // Ouvrir le fichier en local pour écrire les données reçues
+    // Ouvrir le fichier local pour écrire les données reçues
     FILE *file = fopen(filename, "wb");
     if (!file) {
         perror("[ERREUR] Erreur lors de la création du fichier local");
@@ -104,28 +109,67 @@ int download_file(const char *filename, int port) {
     }
     printf("[DEBUG] Fichier local ouvert pour écriture : %s\n", filename);
 
-    // Recevoir et écrire les données dans le fichier
-    while ((bytes_received = recv(sock, buffer, sizeof(buffer), 0)) > 0) {
-        fwrite(buffer, 1, bytes_received, file);
-        printf("[DEBUG] Reçu %d octets, écrits dans le fichier\n", bytes_received);
+    // Recevoir les données
+    printf("[DEBUG] Attente de données...\n");
+    while (1) {
+        // Recevoir la taille des données chiffrées
+        uint32_t size_received;
+	bytes_received = recv(sock, &size_received, sizeof(size_received), 0);
+	if (bytes_received <= 0) {
+	    perror("[ERREUR] Erreur lors de la réception de la taille des données");
+	    fclose(file);
+	    close(sock);
+	    return -1;
+	}
+	encrypted_len = ntohl(size_received); // Convertir en ordre hôte
+        printf("[INFO] Taille des données chiffrées reçues : %d octets\n", encrypted_len);
+	
+        // Vérifier si c'est la fin du fichier
+        if (encrypted_len == 0) {
+            printf("[INFO] Signal de fin de fichier reçu.\n");
+            break;
+        }
+
+        // Recevoir les données chiffrées
+        bytes_received = recv(sock, buffer, encrypted_len, 0);
+        if (bytes_received <= 0) {
+	    if (bytes_received == 0) {
+		fprintf(stderr, "[INFO] Fin de connexion.\n");
+	    } else {
+		perror("[ERREUR] Réception échouée");
+	    }
+	    fclose(file);
+	    close(sock);
+	    return -1;
+	}
+	printf("[INFO] Segment de données reçu (%d octets).\n", bytes_received);
+	if (bytes_received > 0) {
+	    printf("[DEBUG] Données reçues (hex, taille : %d octets) : ", bytes_received);
+	    for (int i = 0; i < bytes_received; i++) {
+		printf("%02x", (unsigned char)buffer[i]);
+	    }
+	    printf("\n");
+	} else {
+	    fprintf(stderr, "[ERREUR] Aucune donnée reçue du serveur.\n");
+	}
+        // Déchiffrer les données reçues
+        decrypted_len = decrypt_data(buffer, bytes_received, decrypted_buffer);
+        if (decrypted_len < 0) {
+            fprintf(stderr, "[ERREUR] Déchiffrement échoué pour les données reçues.\n");
+            fclose(file);
+            close(sock);
+            return -1;
+        }
+ 
+        // Écrire les données déchiffrées dans le fichier
+        fwrite(decrypted_buffer, 1, decrypted_len, file);
+        printf("[DEBUG] %d octets déchiffrés et écrits dans le fichier.\n", decrypted_len);
     }
 
-    // Vérifier les erreurs de réception
-    if (bytes_received < 0) {
-        perror("[ERREUR] Erreur lors de la réception du fichier");
-        fclose(file);
-        close(sock);
-        return -1;
-    }
-
-    // Vérifier si la réception est terminée
-    printf("[INFO] Réception terminée pour le fichier : %s\n", filename);
-
-    // Fermer les ressources
     fclose(file);
     close(sock);
 
-    printf("[INFO] Fichier %s téléchargé avec succès.\n", filename);
+    printf("[INFO] Fichier %s téléchargé et déchiffré avec succès.\n", filename);
     return 0;
 }
 int request_file_list(int port) {
@@ -189,6 +233,11 @@ int request_file_list(int port) {
     return 0;
 }
 int upload_file(const char *filename, int port) {
+    if (!validate_filename(filename)) {
+		fprintf(stderr, "[ERREUR] Nom de fichier invalide : %s\n", filename);
+		return -1;
+    }
+    printf("[INFO] Validation du fichier '%s' réussie.\n", filename);
     FILE *file = fopen(filename, "rb");
     if (!file) {
         perror("[ERREUR] Erreur lors de l'ouverture du fichier");
@@ -197,10 +246,14 @@ int upload_file(const char *filename, int port) {
 
     char buffer[768];
     size_t bytes_read;
+    char encrypted_buffer[1024]; // Tampon pour les données chiffrées
+    int encrypted_len;           // Longueur des données chiffrées
 
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-        char msg[1024];
-        snprintf(msg, sizeof(msg), "UPLOAD:%s:%.*s", filename, (int)bytes_read, buffer);
+      encrypt_data(buffer, encrypted_buffer, &encrypted_len);
+
+        char msg[2048];
+        snprintf(msg, sizeof(msg), "UPLOAD:%s:%.*s", filename, encrypted_len, encrypted_buffer);
 
         if (sndmsg(msg, port) < 0) {
             fclose(file);
@@ -209,7 +262,6 @@ int upload_file(const char *filename, int port) {
     }
 
     fclose(file);
-    printf("[INFO] Fichier %s téléversé avec succès\n", filename);
     return 0;
 }
 int parse_command(int argc, char *argv[], int port) {
@@ -286,6 +338,7 @@ int authenticate(const char *username, const char *password, int port) {
 
     // Envoyer les informations d'authentification
     snprintf(request, sizeof(request), "LOGIN:%s:%s", username, password);
+    printf("[DEBUG] Envoi de la commande : %s\n", request);
     if (send(sock, request, strlen(request), 0) < 0) {
         perror("[ERREUR] Erreur lors de l'envoi de la commande LOGIN");
         close(sock);
@@ -300,17 +353,17 @@ int authenticate(const char *username, const char *password, int port) {
         return -1;
     }
     response[bytes_received] = '\0';
+    printf("[DEBUG] Réponse reçue du serveur : %s\n", response);
 
+    // Vérifier la réponse
     if (strcmp(response, "AUTH_SUCCESS\n") == 0) {
         printf("[INFO] Authentification réussie.\n");
         close(sock);
         return 0;
     } else {
-        printf("[INFO] Échec de l'authentification :AUTH_FAIL: Nom d'utilisateur ou mot de passe incorrect. ");
+        printf("[INFO] Échec de l'authentification : %s\n", response);
         close(sock);
         return -1;
     }
 }
-
-
 

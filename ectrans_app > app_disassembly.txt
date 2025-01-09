@@ -1,0 +1,459 @@
+/lib/ld-linux-aarch64.so.1
+x%b2
+vWRu
+__gmon_start__
+_ITM_deregisterTMCloneTable
+_ITM_registerTMCloneTable
+EVP_EncryptUpdate
+EVP_DigestInit_ex
+EVP_sha256
+EVP_MD_CTX_new
+EVP_DecryptFinal_ex
+EVP_DigestFinal_ex
+EVP_DecryptInit_ex
+EVP_DecryptUpdate
+EVP_EncryptInit_ex
+EVP_DigestUpdate
+EVP_aes_256_cbc
+EVP_CIPHER_CTX_new
+EVP_MD_CTX_free
+EVP_CIPHER_CTX_free
+EVP_EncryptFinal_ex
+inet_ntoa
+__cxa_finalize
+ntohl
+usleep
+connect
+recv
+__libc_start_main
+strcmp
+fprintf
+socket
+fopen
+fclose
+strcpy
+memset
+strncmp
+__ctype_b_loc
+closedir
+puts
+strlen
+send
+memcmp
+bind
+htonl
+htons
+abort
+snprintf
+stderr
+listen
+opendir
+fread
+perror
+strcat
+accept
+putchar
+__isoc99_sscanf
+fwrite
+readdir
+__stack_chk_fail
+access
+setsockopt
+inet_addr
+__stack_chk_guard
+libcrypto.so.3
+libc.so.6
+ld-linux-aarch64.so.1
+OPENSSL_3.0.0
+GLIBC_2.17
+GLIBC_2.34
+`"A9@
+ h`8
+?h 8
+?h 8
+?h 8
+?h 8
+ h`8
+server
+Message re
+u : %s
+[ERREUR] Erreur lors de la cr
+ation du socket
+127.0.0.1
+[ERREUR] Erreur lors de la connexion au serveur
+[INFO] Connexion au serveur r
+ussie. Message en cours d'envoi : '%s'
+[ERREUR] Erreur lors de l'envoi du message
+[DEBUG] Message envoy
+ avec succ
+[INFO] R
+ponse re
+ue du serveur (%d octets) : %s
+[ERREUR] Pas de r
+ponse ou r
+ponse invalide du serveur.
+[ERREUR] Nom de fichier invalide : %s
+[DEBUG] Socket client cr
+ avec succ
+s : %d
+[DEBUG] Connect
+ au serveur sur le port %d
+DOWNLOAD:%s
+[ERREUR] Erreur lors de l'envoi de la commande DOWNLOAD
+[INFO] Commande DOWNLOAD envoy
+e pour le fichier : %s
+[ERREUR] Erreur lors de la cr
+ation du fichier local
+[DEBUG] Fichier local ouvert pour 
+criture : %s
+[DEBUG] Attente de donn
+es...
+[ERREUR] Erreur lors de la r
+ception de la taille des donn
+[INFO] Taille des donn
+es chiffr
+es re
+ues : %d octets
+[INFO] Signal de fin de fichier re
+[INFO] Fichier %s t
+charg
+ et d
+chiffr
+ avec succ
+[INFO] Fin de connexion.
+[ERREUR] R
+ception 
+chou
+[INFO] Segment de donn
+es re
+u (%d octets).
+[DEBUG] Donn
+es re
+ues (hex, taille : %d octets) : 
+%02x
+[ERREUR] Aucune donn
+e re
+ue du serveur.
+[ERREUR] D
+chiffrement 
+chou
+ pour les donn
+es re
+ues.
+[DEBUG] %d octets d
+chiffr
+s et 
+crits dans le fichier.
+[ERREUR] Erreur lors de la cr
+ation du socket client
+[ERREUR] Connexion au serveur 
+chou
+[DEBUG] Envoi de la commande : '%s'
+[ERREUR] Erreur lors de l'envoi de la commande LIST
+En attente des donn
+es depuis le serveur...
+ Donn
+es re
+ues (%d octets) : %s
+[ERREUR] Erreur lors de la r
+ception de la r
+ponse
+[INFO] La connexion avec le serveur a 
+ ferm
+[INFO] Liste des fichiers :
+[INFO] Validation du fichier '%s' r
+ussie.
+[ERREUR] Erreur lors de l'ouverture du fichier
+UPLOAD:%s:%.*s
+Usage : sectrans <commande> [arguments]
+Commandes disponibles :
+  -up <file>    : T
+verse un fichier au serveur
+  -list         : Liste les fichiers sur le serveur
+  -down <file>  : T
+charge un fichier depuis le serveur
+  -quit         : Arr
+te le serveur
+Usage : sectrans -up <file>
+-list
+-down
+Usage : sectrans -down <file>
+-login
+Usage : sectrans -login <username> <password>
+Commande inconnue : %s
+LOGIN:%s:%s
+[DEBUG] Envoi de la commande : %s
+[ERREUR] Erreur lors de l'envoi de la commande LOGIN
+[DEBUG] R
+ponse re
+ue du serveur : %s
+AUTH_SUCCESS
+[INFO] Authentification r
+ussie.
+[INFO] 
+chec de l'authentification : %s
+[ERREUR] Erreur lors de la creation du socket serveur
+[DEBUG] Socket serveur cree avec succ
+s : %d
+[ERREUR] Erreur lors de setsockopt
+[ERREUR] Erreur lors de la liaison du socket
+[DEBUG] Liaison reussie.
+[ERREUR] Erreur lors de l'ecoute sur le socket
+[DEBUG] Serveur en ecoute sur le port %d
+[INFO] En attente de connexion...
+[ERREUR] Erreur lors de l'acceptation de la connexion
+[INFO] Connexion terminee par le client (IP : %s).
+[ERREUR] Erreur lors de la reception.
+[INFO] Commande re
+ue : %s
+LOGIN:
+ERREUR: Non authentifie.
+[ERREUR] Commande re
+ue sans authentification prealable.
+LIST
+[DEBUG] Taille de la reponse LIST : %lu octets
+[ERREUR] Erreur lors de l'envoi de la reponse LIST
+[INFO] Reponse LIST envoyee au client.
+Erreur lors de l'acc
+s au repertoire uploads/
+UPLOAD:
+%255[^:]:%767[^
+[INFO] Commande UPLOAD re
+ue pour le fichier : %s
+Fichier uploade avec succ
+[INFO] Fichier %s sauvegarde avec succ
+Erreur lors de l'upload du fichier.
+[ERREUR] Echec de la sauvegarde du fichier %s.
+DOWNLOAD:
+[DEBUG] Traitement de la commande DOWNLOAD avec buffer : %s
+%255s
+[ERREUR] echec de l'extraction du nom du fichier depuis buffer.
+Erreur : Commande mal formee.
+[INFO] Demande de telechargement pour le fichier : %s
+[INFO] Fichier %s envoye avec succ
+Erreur : Impossible de telecharger le fichier demande.
+Commande inconnue wakwak
+t du serveur
+[DEBUG] Socket client ferme : %d
+[DEBUG] Socket serveur ferme: %d
+Le serveur a ete arr
+te proprement
+[ERREUR] Echec de reception 
+Message chiffre re
+u : %s
+Erreur lors de la finalisation du dechiffrement
+Message dechiffre : %s
+uploads/%s
+[ERREUR] Erreur lors de la creation/ecriture du fichier
+[ERREUR] Erreur lors de l'ecriture des donnees
+[INFO] Fichier %s sauvegarde avec succ
+uploads/
+[ERREUR] Impossible d'ouvrir le repertoire uploads/
+Erreur : Impossible d'acceder au repertoire uploads/
+[DEBUG] Fichier trouve : %s
+Aucun fichier disponible.
+%255[^:]:%767s
+Fichier uploade et dechiffre avec succ
+[INFO] Fichier %s dechiffre et sauvegarde avec succ
+Erreur lors de la sauvegarde du fichier dechiffre.
+[ERREUR] Echec de la sauvegarde du fichier dechiffre %s.
+[DEBUG] Reponse LIST generee :
+[ERREUR] Fichier non trouve
+Erreur : Fichier non trouve.
+Erreur : Impossible d'envoyer le fichier.
+%49[^:]:%49s
+admin
+password
+[INFO] Authentification reussie pour l'utilisateur : %s
+AUTH_SUCCESS
+[ERREUR] Erreur lors de l'envoi de AUTH_SUCCESS
+[DEBUG] AUTH_SUCCESS envoye : %d octets
+[INFO] Echec de l'authentification pour l'utilisateur : %s
+AUTH_FAIL
+[ERREUR] Erreur lors de l'envoi de AUTH_FAIL
+[DEBUG] AUTH_FAIL envoye : %d octets
+Commande non reconnue : %s
+[DEBUG] Chemin du fichier : %s
+[ERREUR] Erreur lors de l'ouverture du fichier
+[INFO] Envoi du fichier : %s
+[INFO] Lecture de %zu octets du fichier.
+[ERREUR] Erreur lors de l'envoi de la taille des donnees
+[ERREUR] Erreur lors de l'envoi des donnees
+[DEBUG] Donnees envoyees (hex) : 
+%02x
+[ERREUR] Erreur lors de l'envoi du signal de fin de fichier
+[INFO] Envoi du fichier %s termine avec succ
+LOGIN:%49[^:]:%49s
+[DEBUG] Reponse AUTH_SUCCESS envoyee au client
+[ERREUR] Echec de l'authentification pour l'utilisateur : %s
+[DEBUG] Reponse AUTH_FAIL envoyee au client
+Erreur de cr
+ation du contexte EVP
+Erreur d'initialisation du chiffrement
+Erreur lors du chiffrement
+Erreur lors de la finalisation du chiffrement
+Erreur d'initialisation du d
+chiffrement
+Erreur lors du d
+chiffrement
+Erreur lors de la finalisation du d
+chiffrement
+[DEBUG] Donn
+es d
+chiffr
+es (hex) : 
+%02x
+Erreur de cr
+ation du contexte SHA-256
+Erreur lors de l'initialisation SHA-256
+Erreur lors de la mise 
+ jour SHA-256
+Erreur lors de la finalisation SHA-256
+[ERREUR] Nom de fichier trop long.
+[ERREUR] Nom de fichier invalide : %s
+mysecurekey1234567890abcdef
+1234567890abcdefGCC: (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+Scrt1.o
+__abi_tag
+crti.o
+call_weak_fn
+crtn.o
+crtstuff.c
+deregister_tm_clones
+__do_global_dtors_aux
+completed.0
+__do_global_dtors_aux_fini_array_entry
+frame_dummy
+__frame_dummy_init_array_entry
+main.c
+client.c
+server.c
+utils.c
+__FRAME_END__
+__GNU_EH_FRAME_HDR
+_GLOBAL_OFFSET_TABLE_
+_DYNAMIC
+handle_client_request
+worker_thread
+inet_ntoa@GLIBC_2.17
+save_uploaded_file
+__gmon_start__
+readdir@GLIBC_2.17
+_fini
+socket@GLIBC_2.17
+strcat@GLIBC_2.17
+snprintf@GLIBC_2.17
+putchar@GLIBC_2.17
+fprintf@GLIBC_2.17
+worker_thread_created
+__stack_chk_guard@GLIBC_2.17
+htons@GLIBC_2.17
+__ctype_b_loc@GLIBC_2.17
+fread@GLIBC_2.17
+startserver
+EVP_sha256@OPENSSL_3.0.0
+__cxa_finalize@GLIBC_2.17
+_ITM_deregisterTMCloneTable
+log_file
+_IO_stdin_used
+EVP_MD_CTX_new@OPENSSL_3.0.0
+decrypt_data
+_ITM_registerTMCloneTable
+closedir@GLIBC_2.17
+__data_start
+__isoc99_sscanf@GLIBC_2.17
+strncmp@GLIBC_2.17
+access@GLIBC_2.17
+stderr@GLIBC_2.17
+abort@GLIBC_2.17
+__bss_start__
+calculate_sha256
+encrypt_data
+usleep@GLIBC_2.17
+EVP_DecryptUpdate@OPENSSL_3.0.0
+EVP_EncryptFinal_ex@OPENSSL_3.0.0
+recv@GLIBC_2.17
+__TMC_END__
+perror@GLIBC_2.17
+__dso_handle
+EVP_DigestUpdate@OPENSSL_3.0.0
+fopen@GLIBC_2.17
+__end__
+listen@GLIBC_2.17
+__stack_chk_fail@GLIBC_2.17
+__bss_end__
+MY_AES_KEY
+list_files
+getmsg
+upload_file
+authenticate
+memcmp@GLIBC_2.17
+EVP_MD_CTX_free@OPENSSL_3.0.0
+__bss_start
+send@GLIBC_2.17
+bind@GLIBC_2.17
+EVP_CIPHER_CTX_free@OPENSSL_3.0.0
+fclose@GLIBC_2.17
+ntohl@GLIBC_2.17
+parse_command
+validate_filename
+EVP_DecryptInit_ex@OPENSSL_3.0.0
+sndmsg
+strcmp@GLIBC_2.17
+download_file
+EVP_aes_256_cbc@OPENSSL_3.0.0
+opendir@GLIBC_2.17
+EVP_DigestInit_ex@OPENSSL_3.0.0
+client_socket
+setsockopt@GLIBC_2.17
+_end
+EVP_CIPHER_CTX_new@OPENSSL_3.0.0
+request_file_list
+accept@GLIBC_2.17
+EVP_EncryptInit_ex@OPENSSL_3.0.0
+puts@GLIBC_2.17
+fwrite@GLIBC_2.17
+_edata
+inet_addr@GLIBC_2.17
+server_socket
+AES_IV
+handle_authentication
+strcpy@GLIBC_2.17
+stopserver
+__libc_start_main@GLIBC_2.34
+connect@GLIBC_2.17
+EVP_DecryptFinal_ex@OPENSSL_3.0.0
+strlen@GLIBC_2.17
+htonl@GLIBC_2.17
+EVP_EncryptUpdate@OPENSSL_3.0.0
+EVP_DigestFinal_ex@OPENSSL_3.0.0
+send_file_to_client
+main
+_init
+memset@GLIBC_2.17
+.symtab
+.strtab
+.shstrtab
+.interp
+.note.gnu.build-id
+.note.ABI-tag
+.gnu.hash
+.dynsym
+.dynstr
+.gnu.version
+.gnu.version_r
+.rela.dyn
+.rela.plt
+.init
+.text
+.fini
+.rodata
+.eh_frame_hdr
+.eh_frame
+.init_array
+.fini_array
+.dynamic
+.got
+.data
+.bss
+.comment
