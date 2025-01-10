@@ -3,68 +3,104 @@
 #include "utils.h"
 #include <openssl/evp.h>
 #include <openssl/aes.h>
+#include <ctype.h>
+#include <openssl/rand.h> // Pour RAND_bytes
 
 unsigned char MY_AES_KEY[32] = "mysecurekey1234567890abcdef";
 unsigned char AES_IV[16] = "1234567890abcdef";
 
+#include <stdio.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <string.h>
+
 void encrypt_data(const char *input, char *output, int *output_len) {
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); // Contexte pour le chiffrement
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
-        perror("Erreur de création du contexte EVP");
+        perror("[ERREUR] Impossible de créer le contexte de chiffrement");
+        *output_len = -1;
         return;
     }
 
-    // Initialiser le contexte avec AES-256-CBC
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, MY_AES_KEY, AES_IV) != 1) {
-        perror("Erreur d'initialisation du chiffrement");
+    const unsigned char *key = (unsigned char *)"01234567890123456789012345678901";
+    unsigned char iv[16];
+    RAND_bytes(iv, sizeof(iv)); // Génération aléatoire de l'IV
+
+    // Copier l'IV au début de la sortie
+    memcpy(output, iv, sizeof(iv));
+    int offset = sizeof(iv);
+
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1) {
+        perror("[ERREUR] Erreur lors de l'initialisation du chiffrement");
+        *output_len = -1;
         EVP_CIPHER_CTX_free(ctx);
         return;
     }
 
-    int len = 0;
-    int ciphertext_len = 0;
-
-    // Chiffrer les données
-    if (EVP_EncryptUpdate(ctx, (unsigned char *)output, &len, (unsigned char *)input, strlen(input)) != 1) {
-        perror("Erreur lors du chiffrement");
+    int len;
+    if (EVP_EncryptUpdate(ctx, (unsigned char *)(output + offset), &len, (unsigned char *)input, strlen(input)) != 1) {
+        perror("[ERREUR] Erreur lors de la mise à jour du chiffrement");
+        *output_len = -1;
         EVP_CIPHER_CTX_free(ctx);
         return;
     }
-    ciphertext_len = len;
+    *output_len = len + offset;
 
-    // Finaliser le chiffrement
-    if (EVP_EncryptFinal_ex(ctx, (unsigned char *)output + len, &len) != 1) {
-        perror("Erreur lors de la finalisation du chiffrement");
+    if (EVP_EncryptFinal_ex(ctx, (unsigned char *)(output + offset + len), &len) != 1) {
+        perror("[ERREUR] Erreur lors de la finalisation du chiffrement");
+        *output_len = -1;
         EVP_CIPHER_CTX_free(ctx);
         return;
     }
-    ciphertext_len += len;
+    *output_len += len;
 
-    *output_len = ciphertext_len; // Longueur des données chiffrées
     EVP_CIPHER_CTX_free(ctx);
 }
 
+
+
 int decrypt_data(const char *input, int input_len, char *output) {
-    
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); // Créer un contexte de déchiffrement
-    if (!ctx) {
-        perror("Erreur de création du contexte EVP");
+    if (input_len <= 16) {
+        fprintf(stderr, "[ERREUR] Les données sont trop courtes pour contenir un IV et des données chiffrées.\n");
         return -1;
     }
 
-    // Initialiser le contexte avec AES-256-CBC
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, MY_AES_KEY, AES_IV) != 1) {
-        perror("Erreur d'initialisation du déchiffrement");
+    // Extraire l'IV
+    unsigned char iv[16];
+    memcpy(iv, input, 16); // Les 16 premiers octets sont l'IV
+
+    printf("[DEBUG] IV extrait (hex) : ");
+    for (int i = 0; i < 16; i++) {
+        printf("%02x", iv[i]);
+    }
+    printf("\n");
+
+    // Les données chiffrées commencent après l'IV
+    const unsigned char *encrypted_data = (unsigned char *)(input + 16);
+    int encrypted_len = input_len - 16;
+
+    // Préparer le contexte de déchiffrement
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        fprintf(stderr, "[ERREUR] Impossible de créer le contexte de déchiffrement.\n");
+        return -1;
+    }
+
+    const unsigned char *key = (unsigned char *)"01234567890123456789012345678901";
+
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1) {
+        fprintf(stderr, "[ERREUR] Erreur lors de l'initialisation du déchiffrement.\n");
         EVP_CIPHER_CTX_free(ctx);
         return -1;
     }
 
-    int len = 0;
+    int len;
     int plaintext_len = 0;
+    unsigned char decrypted_data[1024]; // Tampon pour les données déchiffrées
 
     // Déchiffrer les données
-    if (EVP_DecryptUpdate(ctx, (unsigned char *)output, &len, (unsigned char *)input, input_len) != 1) {
-        perror("Erreur lors du déchiffrement");
+    if (EVP_DecryptUpdate(ctx, (unsigned char *)output, &len, encrypted_data, encrypted_len) != 1) {
+        fprintf(stderr, "[ERREUR] Erreur lors de la mise à jour du déchiffrement.\n");
         EVP_CIPHER_CTX_free(ctx);
         return -1;
     }
@@ -72,21 +108,18 @@ int decrypt_data(const char *input, int input_len, char *output) {
 
     // Finaliser le déchiffrement
     if (EVP_DecryptFinal_ex(ctx, (unsigned char *)output + len, &len) != 1) {
-        perror("Erreur lors de la finalisation du déchiffrement");
+        fprintf(stderr, "[ERREUR] Erreur lors de la finalisation du déchiffrement.\n");
         EVP_CIPHER_CTX_free(ctx);
         return -1;
     }
     plaintext_len += len;
 
-    output[plaintext_len] = '\0'; // Terminer la chaîne déchiffrée
+    // Ajouter un caractère de fin pour en faire une chaîne valide
+    output[plaintext_len] = '\0';
+
     EVP_CIPHER_CTX_free(ctx);
 
-    printf("[DEBUG] Données déchiffrées (hex) : ");
-    for (int i = 0; i < plaintext_len; i++) {
-        printf("%02x", (unsigned char)output[i]);
-    }
-    printf("\n");
-
+    printf("[INFO] Données déchiffrées avec succès.\n");
     return plaintext_len;
 }
 void calculate_sha256(const unsigned char *data, size_t data_len, unsigned char *hash) {

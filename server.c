@@ -11,6 +11,8 @@
 #include <sys/socket.h>  
 #include <netinet/in.h>   
 #include <arpa/inet.h>  
+#include <openssl/rand.h>
+#include <openssl/evp.h>
 
 FILE *log_file = NULL;           
 pthread_t worker_thread;         
@@ -144,7 +146,7 @@ int startserver(int port) {
 	    }
 	}
 	else {
-                const char *error_response = "Commande inconnue wakwak\n";
+                const char *error_response = "Commande inconnue \n";
                 send(client_socket, error_response, strlen(error_response), 0);
             }
         }
@@ -230,8 +232,8 @@ int save_uploaded_file(const char *filename, const char *data) {
 int list_files(char *response) {
     DIR *dir = opendir("uploads/");
     if (!dir) {
-        perror("[ERREUR] Impossible d'ouvrir le repertoire uploads/");
-        strcpy(response, "Erreur : Impossible d'acceder au repertoire uploads/\n");
+        perror("[ERREUR] Impossible d'ouvrir le répertoire uploads/");
+        strcpy(response, "Erreur : Impossible d'accéder au répertoire uploads/\n");
         return -1;
     }
 
@@ -240,7 +242,7 @@ int list_files(char *response) {
 
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_REG) { // Fichiers réguliers uniquement
-            printf("[DEBUG] Fichier trouve : %s\n", entry->d_name); // Log du fichier trouvé
+            // Ajouter le nom du fichier et une nouvelle ligne
             strcat(response, entry->d_name);
             strcat(response, "\n");
         }
@@ -250,9 +252,12 @@ int list_files(char *response) {
     // Si aucun fichier trouvé
     if (strlen(response) == 0) {
         strcpy(response, "Aucun fichier disponible.\n");
+    } else {
+        // Ajouter le signal de fin
+        strcat(response, "END_OF_LIST\n");
     }
 
-    return 0;
+    return 0; // Succès
 }
 
 void handle_client_request(const char *msg) {
@@ -345,45 +350,113 @@ int send_file_to_client(int socket, const char *filename) {
         return -1;
     }
 
-    char buffer[1024];
+    char buffer[1024];                 // Tampon pour les données brutes
+    unsigned char encrypted_buffer[1024]; // Tampon pour les données chiffrées
     size_t bytes_read;
+    int encrypted_len;
 
-    printf("[INFO] Envoi du fichier : %s\n", filename);
-
-    while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-       printf("[INFO] Lecture de %zu octets du fichier.\n", bytes_read);
-
-        // Envoyer la taille des données lues
-        uint32_t size_to_send = htonl(bytes_read); // Convertir en ordre réseau
-        if (send(socket, &size_to_send, sizeof(size_to_send), 0) < 0) {
-            perror("[ERREUR] Erreur lors de l'envoi de la taille des donnees");
-            fclose(file);
-            return -1;
-        }
-
-        // Envoyer les données lues
-        if (send(socket, buffer, bytes_read, 0) < 0) {
-            perror("[ERREUR] Erreur lors de l'envoi des donnees");
-            fclose(file);
-            return -1;
-        }
-
-        printf("[DEBUG] Donnees envoyees (hex) : ");
-        for (size_t i = 0; i < bytes_read; i++) {
-            printf("%02x", (unsigned char)buffer[i]);
-        }
-        printf("\n");
-    }
-
-    uint32_t end_signal = htonl(0); // Taille 0 pour signaler la fin
-    if (send(socket, &end_signal, sizeof(end_signal), 0) < 0) {
-        perror("[ERREUR] Erreur lors de l'envoi du signal de fin de fichier");
+    // Générer un IV
+    unsigned char iv[16];
+    if (!RAND_bytes(iv, sizeof(iv))) {
+        perror("[ERREUR] Impossible de générer l'IV");
         fclose(file);
         return -1;
     }
 
+    // Envoyer l'IV au client
+    if (send(socket, iv, sizeof(iv), 0) < 0) {
+        perror("[ERREUR] Erreur lors de l'envoi de l'IV");
+        fclose(file);
+        return -1;
+    }
+    printf("[INFO] IV envoyé au client.\n");
+
+    // Préparer le contexte de chiffrement
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        perror("[ERREUR] Impossible de créer le contexte de chiffrement");
+        fclose(file);
+        return -1;
+    }
+
+    const unsigned char *key = (unsigned char *)"01234567890123456789012345678901";
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv) != 1) {
+        perror("[ERREUR] Erreur lors de l'initialisation du chiffrement");
+        EVP_CIPHER_CTX_free(ctx);
+        fclose(file);
+        return -1;
+    }
+    printf("[INFO] Envoi du fichier : %s\n", filename);
+
+    // Lire et chiffrer les données
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+        if (EVP_EncryptUpdate(ctx, encrypted_buffer, &encrypted_len, (unsigned char *)buffer, bytes_read) != 1) {
+            perror("[ERREUR] Erreur lors du chiffrement des données");
+            EVP_CIPHER_CTX_free(ctx);
+            fclose(file);
+            return -1;
+        }
+
+        // Envoyer la taille des données chiffrées
+        uint32_t size_to_send = htonl(encrypted_len);
+        if (send(socket, &size_to_send, sizeof(size_to_send), 0) < 0) {
+            perror("[ERREUR] Erreur lors de l'envoi de la taille des données chiffrées");
+            EVP_CIPHER_CTX_free(ctx);
+            fclose(file);
+            return -1;
+        }
+
+        // Envoyer les données chiffrées
+        if (send(socket, encrypted_buffer, encrypted_len, 0) < 0) {
+            perror("[ERREUR] Erreur lors de l'envoi des données chiffrées");
+            EVP_CIPHER_CTX_free(ctx);
+            fclose(file);
+            return -1;
+        }
+        printf("[DEBUG] Données chiffrées envoyées (hex) : ");
+        for (int i = 0; i < encrypted_len; i++) {
+            printf("%02x", encrypted_buffer[i]);
+        }
+        printf("\n");
+    }
+
+    // Finaliser le chiffrement
+    if (EVP_EncryptFinal_ex(ctx, encrypted_buffer, &encrypted_len) != 1) {
+        perror("[ERREUR] Erreur lors de la finalisation du chiffrement");
+        EVP_CIPHER_CTX_free(ctx);
+        fclose(file);
+        return -1;
+    }
+
+    // Envoyer la taille des données finales
+    uint32_t final_size_to_send = htonl(encrypted_len);
+    if (send(socket, &final_size_to_send, sizeof(final_size_to_send), 0) < 0) {
+        perror("[ERREUR] Erreur lors de l'envoi de la taille des données finales");
+        EVP_CIPHER_CTX_free(ctx);
+        fclose(file);
+        return -1;
+    }
+
+    // Envoyer les données finales chiffrées
+    if (send(socket, encrypted_buffer, encrypted_len, 0) < 0) {
+        perror("[ERREUR] Erreur lors de l'envoi des données finales chiffrées");
+        EVP_CIPHER_CTX_free(ctx);
+        fclose(file);
+        return -1;
+    }
+
+    // Envoyer un signal de fin
+    uint32_t end_signal = htonl(0);
+    if (send(socket, &end_signal, sizeof(end_signal), 0) < 0) {
+        perror("[ERREUR] Erreur lors de l'envoi du signal de fin de fichier");
+        EVP_CIPHER_CTX_free(ctx);
+        fclose(file);
+        return -1;
+    }
+
+    EVP_CIPHER_CTX_free(ctx);
     fclose(file);
-    printf("[INFO] Envoi du fichier %s termine avec succès.\n", filename);
+    printf("[INFO] Envoi du fichier %s terminé avec succès.\n", filename);
     return 0;
 }
 
